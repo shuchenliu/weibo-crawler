@@ -95,7 +95,8 @@ def get_current_weibo_data(book_name_xls,name,maxWeibo):
     #开始爬取数据
         before = 0 
         after = 0
-        n = 0 
+        n = 0
+        breakPoint = 0
         timeToSleep = 300
         while True:
             before = after
@@ -104,22 +105,24 @@ def get_current_weibo_data(book_name_xls,name,maxWeibo):
             elems = driver.find_elements_by_css_selector('div.card.m-panel.card9')
             print("当前包含微博最大数量：%d,n当前的值为：%d, n值到15说明已无法解析出新的微博" % (len(elems),n))
             after = len(elems)
+            sliceObject = slice(breakPoint,len(elems))
             if after > before:
                 n = 0
             if after == before:        
                 n = n + 1
             if n == 15:
                 print("当前关键词最大微博数为：%d" % after)
-                insert_data(elems,book_name_xls,name)
+                insert_data(elems[sliceObject],book_name_xls,name)
                 break
             if len(elems)>maxWeibo:
                 print("当前微博数以达到%d条"%maxWeibo)
-                insert_data(elems,book_name_xls,name)
+                insert_data(elems[sliceObject],book_name_xls,name)
                 break
             if after > timeToSleep:
                 print("抓取到%d多条，插入当前新抓取数据并休眠30秒" % timeToSleep)
                 timeToSleep = timeToSleep + 300
-                insert_data(elems,book_name_xls,name) 
+                insert_data(elems[sliceObject],book_name_xls,name)
+                breakPoint = len(elems) 
                 time.sleep(30) 
 
 #爬虫运行 
