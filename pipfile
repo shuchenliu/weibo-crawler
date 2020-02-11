@@ -11,6 +11,9 @@ selenium = "*"
 xlrd = "*"
 xlwt = "*"
 xlutils = "*"
+requests = "*"
+pymongo = "*"
+dnspython = "*"
 
 [requires]
 python_version = "3.6"
