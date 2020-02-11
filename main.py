@@ -53,12 +53,13 @@ def spider_topic(post_collection):
     :return:
     """
 
-    # scheme: "https://m.weibo.cn/status/ItKnVeAKZ?mblogid=ItKnVeAKZ&luicode=10000011&lfid=1008084882401a015244a2ab18ee43f7772d6f_-_feed"
-    #4470898193477889
-
     # 1、构造请求
     global min_since_id
     topic_url = 'https://m.weibo.cn/api/container/getIndex?jumpfrom=weibocom&containerid=1008084882401a015244a2ab18ee43f7772d6f_-_feed'
+
+    '''
+    !!! important this should be change to the id of the newest post, check:https://juejin.im/post/5d46adfae51d456201486dcd on how to get this id
+    '''
     if not min_since_id:
         min_since_id='4470931667569516'
        
