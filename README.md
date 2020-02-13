@@ -2,9 +2,7 @@
 
 ##### Get Start
 1. Install: `pipenv install`
-2. Run: 
-  - project 1: `pipenv run python weiboTest.py`
-  - project 2: `pipenv run python main.py`
+2. Run: `pipenv run python main.py`
 
 ##### Issues
 1. duplicate rows (as every fist row of new page will repeat last row of last page)(bad pagination)

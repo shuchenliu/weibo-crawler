@@ -8,6 +8,7 @@ from pymongo import MongoClient
 from datetime import datetime
 
 import requests
+import utils
 
 # 每次请求中最小的since_id，下次请求使用，新浪分页机制
 min_since_id = ''
@@ -61,7 +62,7 @@ def spider_topic(post_collection):
     !!! important this should be change to the id of the newest post, check:https://juejin.im/post/5d46adfae51d456201486dcd on how to get this id
     '''
     if not min_since_id:
-        min_since_id='4470931667569516'
+        min_since_id='4469372959746044'
        
     topic_url = f"{topic_url}&since_id={min_since_id}"
     kv = {'user-agent': 'Mozilla/5.0',
@@ -78,12 +79,20 @@ def spider_topic(post_collection):
     cards = r_json['data']['cards']
     # 2.1、第一次请求cards包含微博和头部信息，以后请求返回只有微博信息
     card_group = cards[2]['card_group'] if len(cards) > 1 else cards[0]['card_group']
+    duplicate_count = 0
     for card in card_group:
-        # 创建保存数据的列表，最后将它写入csv文件
-        sina_columns = []
+        if duplicate_count >= 3:
+            print("duplicate exceeds")
+            break
+
+
         mblog = card['mblog']
         # 2.2、解析微博内容
         r_since_id = mblog['id']
+        if min_since_id == r_since_id:
+            duplicate_count += 1
+            continue
+
         # 过滤html标签，留下内容
         sina_text = spider_full_content(r_since_id)
         # 2.3、解析用户信息
@@ -102,7 +111,8 @@ def spider_topic(post_collection):
           "user-id": user_id, 
           "user-name": user_name, 
           "user-rank": user_rank, 
-          "content": sina_text, 
+          "clean_content": sina_text[1],
+          "full_content": sina_text[0],
           "forward": mblog['reposts_count'], 
           "comment": mblog['comments_count'], 
           "like": mblog['attitudes_count'], 
@@ -111,16 +121,15 @@ def spider_topic(post_collection):
         }
 
         # 检验列表中信息是否完整
-        # sina_columns数据格式：['wb-id', 'user-id', 'user-name', 'user-rank', 'content', 'forward', 'comment', 'like', 'created at', 'relative time']
+        # sina_columns数据格式：['wb-id', 'user-id', 'user-name', 'user-rank', 'clean_content', 'full_content', 'forward', 'comment', 'like', 'created at', 'relative time']
         # 3、保存数据
         save_columns_to_csv(post_dict.values())
         post_collection.insert_one(post_dict)
+        print(f"{r_since_id} created by {user_name} is finished.")
 
         # 4、获得最小since_id，下次请求使用
-        if min_since_id:
-            min_since_id = r_since_id if min_since_id > r_since_id else min_since_id
-        else:
-            min_since_id = r_since_id
+        if min_since_id > r_since_id:
+            min_since_id = r_since_id 
 
         # 5、爬取用户信息不能太频繁，所以设置一个时间间隔
         time.sleep(random.randint(3, 6))
@@ -139,72 +148,9 @@ def spider_full_content(id) -> list:
         return
     r_json = json.loads(r.text)
     weibo_full_content = r_json['data']['longTextContent']
-    # clean_content = weibo_full_content
-    # if weibo_full_content.startswith('<a  href=', 0):
-    #   clean_content = clean_content.split('</a>')[1]
-    # if len(weibo_full_content.split('<a data-url')) > 1:
-    #   clean_content = clean_content.split('<a data-url')[0]
-    # return clean_content
-    return weibo_full_content
+    clean_content = utils.get_clean_text(weibo_full_content)
 
-def spider_user_info(uid) -> list:
-    """
-    爬取用户信息（需要登录），并将基本信息解析成字典返回
-    :return: ['用户名', '性别', '地区', '生日']
-    """
-    user_info_url = 'https://weibo.cn/%s/info' % uid
-    kv = {'user-agent': 'Mozilla/5.0'}
-    try:
-        r = s.get(url=user_info_url, headers=kv)
-        r.raise_for_status()
-    except:
-        print('爬取用户信息失败')
-        return
-    # 使用正则提取基本信息
-    basic_info_html = re.findall('<div class="tip">基本信息</div><div class="c">(.*?)</div>', r.text)
-    # 提取：用户名、性别、地区、生日 这些基本信息
-    basic_infos = get_basic_info_list(basic_info_html)
-    return basic_infos
-
-
-def get_basic_info_list(basic_info_html) -> list:
-    """
-    将html解析提取需要的字段
-    :param basic_info_html:
-    :return: ['用户名', '性别', '地区', '生日']
-    """
-    basic_infos = []
-    basic_info_kvs = basic_info_html[0].split('<br/>')
-    print(basic_info_kvs)
-    for basic_info_kv in basic_info_kvs:
-        if basic_info_kv.startswith('昵称'):
-            basic_infos.append(basic_info_kv.split(':')[1])
-        elif basic_info_kv.startswith('性别'):
-            basic_infos.append(basic_info_kv.split(':')[1])
-        elif basic_info_kv.startswith('地区'):
-            area = basic_info_kv.split(':')[1]
-            # 如果地区是其他的话，就添加空
-            if '其他' in area or '海外' in area:
-                basic_infos.append('')
-                continue
-            # 浙江 杭州，这里只要省
-            if ' ' in area:
-                area = area.split(' ')[0]
-            basic_infos.append(area)
-        elif basic_info_kv.startswith('生日'):
-            birthday = basic_info_kv.split(':')[1]
-            # 19xx 年和20xx 带年份的才有效，只有月日或者星座的数据无效
-            if birthday.startswith('19') or birthday.startswith('20'):
-                # 只要前三位，如198、199、200分别表示80后、90后和00后，方便后面数据分析
-                basic_infos.append(birthday[:3])
-            else:
-                basic_infos.append('')
-        else:
-            pass
-    # 有些用户的生日是没有的，所以直接添加一个空字符
-    if len(basic_infos) < 4:
-        basic_infos.append('')
-    return basic_infos
+    return [weibo_full_content, clean_content]
 
 
 def save_columns_to_csv(columns, encoding='utf-8'):
@@ -224,21 +170,22 @@ def patch_spider_topic():
     # setup database
     client = MongoClient(f"mongodb+srv://{os.environ['DB_USER']}:{os.environ['DB_PW']}@{os.environ['DB_HOST']}")
     db = client.weibo_topic
-    post = db.post
+    raw_post = db.raw_post
 
     # 爬取前先登录，登录失败则不爬取
     if not login_sina():
         return
     # 写入数据前先清空之前的数据
     if not os.path.exists(CSV_FILE_PATH):
-        fields_names = ['wb-id', 'latest update', 'user-id', 'user-name', 'user-rank', 'content', 'forward', 'comment', 'like', 'created at', 'relative time']
+        fields_names = ['wb-id', 'user-id', 'user-name', 'user-rank', 'clean_content', 'full_content', 'forward', 'comment', 'like', 'created at', 'relative time']
         with open(CSV_FILE_PATH, 'a', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fields_names)
             writer.writeheader()
-    for i in range(1000):
+    for i in range(2000):
         print('第%d页' % (i + 1))
-        spider_topic(post)
+        spider_topic(raw_post)
 
 
 if __name__ == '__main__':
     patch_spider_topic()
+    

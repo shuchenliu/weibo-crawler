@@ -7,10 +7,6 @@ name = "pypi"
 black = "==19.3b0"
 
 [packages]
-selenium = "*"
-xlrd = "*"
-xlwt = "*"
-xlutils = "*"
 requests = "*"
 pymongo = "*"
 dnspython = "*"
