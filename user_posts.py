@@ -56,13 +56,13 @@ def spider_user():
 
     # 1、构造请求
     global min_since_id
-    user_url = 'https://m.weibo.cn/api/container/getIndex?uid=7298502196&containerid=1076037298502196'
+    user_url = 'https://m.weibo.cn/api/container/getIndex?uid=3206573203&containerid=1076033206573203'
 
     '''
     !!! important this should be change to the id of the newest post, check:https://juejin.im/post/5d46adfae51d456201486dcd on how to get this id
     '''
     if not min_since_id:
-        min_since_id='4456927708622934'
+        min_since_id='4472666071673088'
        
     user_url = f"{user_url}&since_id={min_since_id}"
     kv = {'user-agent': 'Mozilla/5.0'}
@@ -76,6 +76,7 @@ def spider_user():
     # 2、解析数据
     r_json = json.loads(r.text)
     cards = r_json['data']['cards']
+    
     # 2.1、第一次请求cards包含微博和头部信息，以后请求返回只有微博信息
     duplicate_count = 0
     for card in cards:
@@ -176,6 +177,7 @@ def spider_full_content(id) -> list:
     except:
         print('爬取信息失败')
         return
+
     r_json = json.loads(r.text)
     weibo_full_content = r_json['data']['longTextContent']
     clean_content = utils.get_clean_text(weibo_full_content)
@@ -206,7 +208,7 @@ def patch_spider_user():
         with open(CSV_FILE_PATH, 'a', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fields_names)
             writer.writeheader()
-    for i in range(500):
+    for i in range(20):
         print('第%d页' % (i + 1))
         spider_user()
 

@@ -5,11 +5,14 @@ name = "pypi"
 
 [dev-packages]
 black = "==19.3b0"
+v = {editable = true,version = "*"}
 
 [packages]
 requests = "*"
 pymongo = "*"
 dnspython = "*"
+pandas = "*"
+jinja2 = "*"
 
 [requires]
 python_version = "3.6"

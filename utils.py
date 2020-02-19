@@ -5,7 +5,7 @@ herf = r"<a .*?<\/a>"
 
 people_herf = r"<a href='\/n\/.*?<\/a>"
 
-img_r = r"<span class=""url-icon""><img alt=.*?<\/span>"
+img_r = r'<span class="url-icon"><img alt=.*?<\/span>'
 
 def get_text_without_people_url(text):
     people_url_list = re.findall(people_herf, text)
