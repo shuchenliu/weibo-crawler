@@ -4,6 +4,8 @@ import pymongo
 import json
 import utils
 from datetime import datetime
+import cloudinary
+import cloudinary.uploader
 from csv_generator import csv_generator
 
 # constants
@@ -107,3 +109,20 @@ def login_sina(s):
 def save_csv(post, title="肺炎患者求助超话"):
     documents = post.find({}, projection={'_id': False}).sort('wb-id', pymongo.DESCENDING)
     csv_generator(documents, title)
+
+
+# init cloudinary
+cloudinary.config(
+    cloud_name=os.environ['cld_name'],
+    api_key=os.environ['cld_api_key'],
+    api_secret=os.environ['cld_api_secret']
+)
+
+
+def upload_to_cloudinary(url):
+    try:
+        r = cloudinary.uploader.upload(url)
+        return r['secure_url']
+    except Exception as e:
+        print('Upload image error')
+        print(e)
