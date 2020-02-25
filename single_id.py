@@ -3,7 +3,7 @@ import os
 import csv
 import json
 import time
-import rando
+import random
 import pymongo
 from datetime import datetime
 import sys
