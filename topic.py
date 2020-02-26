@@ -131,4 +131,3 @@ def patch_topic(raw_post, topic_url):
         print('第%d页' % (i + 1))
         if not spider_topic(raw_post, i, topic_url):
             continue
-    
