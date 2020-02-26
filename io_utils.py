@@ -24,7 +24,7 @@ def make_weibo_request(s, url):
     return r
 
 
-def update_db(post_collection, mblog, sina_text):
+def update_db(post_collection, mblog, sina_text, pic_links):
     r_since_id = mblog['id']
     user = mblog['user']
     user_name = user['screen_name']
@@ -46,7 +46,8 @@ def update_db(post_collection, mblog, sina_text):
         "comment": mblog['comments_count'],
         "like": mblog['attitudes_count'],
         "created at": timestamp,
-        "relative time": mblog['created_at']
+        "relative time": mblog['created_at'],
+        "pics": pic_links,
     }
 
     post_collection.update_one({'wb-id': r_since_id}, {'$set': post_dict}, upsert=True)
@@ -126,3 +127,10 @@ def upload_to_cloudinary(url):
     except Exception as e:
         print('Upload image error')
         print(e)
+
+
+def upload_weibo_pics(pics):
+    ori_links = [pic['large']['url'] for pic in pics]
+    links = [upload_to_cloudinary(link) for link in ori_links]
+
+    return links

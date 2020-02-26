@@ -8,7 +8,8 @@ import requests
 from io_utils import (
     make_weibo_request,
     update_db,
-    spider_full_content
+    spider_full_content,
+    upload_weibo_pics
 )
 
 # 每次请求中最小的since_id，下次请求使用，新浪分页机制
@@ -33,7 +34,9 @@ def spider_topic(post_collection, latest_uid, history_max_id):
     global count
     # 1、构造请求
     global super_min_since_id
-    topic_url = 'https://m.weibo.cn/api/container/getIndex?jumpfrom=weibocom&containerid=1008084882401a015244a2ab18ee43f7772d6f'
+    # topic_url = 'https://m.weibo.cn/api/container/getIndex?jumpfrom=weibocom&containerid=1008084882401a015244a2ab18ee43f7772d6f'
+
+    topic_url='https://m.weibo.cn/api/container/getIndex?containerid=1008084882401a015244a2ab18ee43f7772d6f_-_feed&luicode=10000011&lfid=100103type%3D1%26q%3D%E8%82%BA%E7%82%8E%E6%82%A3%E8%80%85%E6%B1%82%E5%8A%A9%E8%B6%85%E8%AF%9D&featurecode=100000'
 
     '''
     !!! important this should be change to the id of the newest post, check:https://juejin.im/post/5d46adfae51d456201486dcd on how to get this id
@@ -56,6 +59,8 @@ def spider_topic(post_collection, latest_uid, history_max_id):
     # 2、解析数据
     r_json = json.loads(r.text)
     cards = r_json['data']['cards']
+    cards = filter(lambda x: 'card_group' in x, cards)
+    cards = list(filter(lambda x: x['itemid'] == '', cards))
 
     # 2.1、第一次请求cards包含微博和头部信息，以后请求返回只有微博信息
     card_group = cards[0]['card_group']
@@ -93,8 +98,20 @@ def spider_topic(post_collection, latest_uid, history_max_id):
         sys.stdout.write(f'\r scrawled {r_since_id}, total count {count}\n')
         # sys.stdout.flush()
 
+        # upload pic to cloudinary
+        pic_links = []
+        if 'pics' in mblog:
+            tar_len = len(mblog['pics'])
+            print(f"uploading {tar_len} pictures to Cloudiary")
+            pic_links = upload_weibo_pics(mblog['pics'])
+
+            if len(mblog['pics']) != len(pic_links):
+                print(f"Tried {tar_len}, {len(pic_links)} succeeded")
+            else:
+                print('done')
+
         # 3 Update DB
-        update_db(post_collection, mblog, content_text)
+        update_db(post_collection, mblog, content_text, pic_links)
 
         # 4、获得最小since_id，下次请求使用
         if super_min_since_id > r_since_id:
