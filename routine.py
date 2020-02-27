@@ -11,4 +11,4 @@ while 1:
 
     subprocess.run(write_time_cmd)
     subprocess.run(cmd)
-    time.sleep(1000 * 60 * minute)
+    time.sleep(60 * minute)
