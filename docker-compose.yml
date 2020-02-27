@@ -1,0 +1,9 @@
+version: '2'
+
+services:
+  scraper:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./logs/:/usr/logs
