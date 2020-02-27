@@ -33,7 +33,7 @@ def update_db(post_collection, mblog, sina_text, pic_links):
 
     # extract origin user info
     if "retweeted_status" in mblog and mblog["retweeted_status"]["user"] is not None:
-        find_id = mblog["retweeted_status"]["id"]
+        r_since_id = mblog["retweeted_status"]["id"]
         user_name = mblog["retweeted_status"]["user"]["screen_name"]
         user_id = mblog["retweeted_status"]["user"]["id"]
         user_rank = mblog["retweeted_status"]["user"]['urank']
@@ -43,7 +43,7 @@ def update_db(post_collection, mblog, sina_text, pic_links):
 
     # 把信息放入列表
     post_dict = {
-        "wb-id": find_id if find_id else r_since_id,
+        "wb-id": r_since_id,
         "user-id": user_id,
         "user-name": user_name,
         "user-rank": user_rank,
@@ -59,6 +59,10 @@ def update_db(post_collection, mblog, sina_text, pic_links):
 
     post_collection.update_one({'wb-id': r_since_id}, {'$set': post_dict}, upsert=True)
     print(f"{r_since_id} created by {user_name} is finished.")
+
+
+def get_history_id(db):
+    return list(db.find().sort('wb-id',-1).limit(1))[0]['wb-id']
 
 
 def spider_full_content(s, _id) -> list:

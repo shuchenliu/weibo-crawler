@@ -9,7 +9,8 @@ from io_utils import (
     make_weibo_request,
     update_db,
     spider_full_content,
-    upload_pics_for_given_weibo
+    upload_pics_for_given_weibo,
+    get_history_id
 )
 
 # 每次请求中最小的since_id，下次请求使用，新浪分页机制
@@ -114,9 +115,9 @@ def spider_topic(post_collection, latest_uid, history_max_id):
 
 def patch_super_topic(
         db,
-        latest_uid=None,
+        _from=None,
+        _to=None,
         max_page=100,
-        use_static_end=False
 ):
     """
         latest_uid: start weibo id, default none
@@ -125,15 +126,13 @@ def patch_super_topic(
     """
 
     # need to check empty for new collections
-    if use_static_end or db.count() == 0:
-        history_max_id = temp_history_max_id
-    else:
-        history_max_id = list(db.find().sort('wb-id',-1).limit(1))[0]['wb-id']
+    if not _to:
+        _to = temp_history_max_id if db.count() == 0 else get_history_id(db)
 
     for i in range(max_page):
         print('第%d页' % (i + 1))
 
-        if not spider_topic(db, latest_uid, history_max_id):
+        if not spider_topic(db, _from, _to):
             continue
-        if spider_topic(db, latest_uid, history_max_id):
+        if spider_topic(db, _from, _to):
             break
