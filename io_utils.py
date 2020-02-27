@@ -31,12 +31,19 @@ def update_db(post_collection, mblog, sina_text, pic_links):
     user_id = user['id']
     user_rank = user['urank']
 
+    # extract origin user info
+    if "retweeted_status" in mblog and mblog["retweeted_status"]["user"] is not None:
+        find_id = mblog["retweeted_status"]["id"]
+        user_name = mblog["retweeted_status"]["user"]["screen_name"]
+        user_id = mblog["retweeted_status"]["user"]["id"]
+        user_rank = mblog["retweeted_status"]["user"]['urank']
+
     now = datetime.now()
     timestamp = datetime.timestamp(now)
 
     # 把信息放入列表
     post_dict = {
-        "wb-id": r_since_id,
+        "wb-id": find_id if find_id else r_since_id,
         "user-id": user_id,
         "user-name": user_name,
         "user-rank": user_rank,
@@ -129,8 +136,23 @@ def upload_to_cloudinary(url):
         print(e)
 
 
-def upload_weibo_pics(pics):
+def extract_and_upload_pics(pics):
     ori_links = [pic['large']['url'] for pic in pics]
     links = [upload_to_cloudinary(link) for link in ori_links]
 
     return links
+
+
+def upload_pics_for_given_weibo(mblog):
+    pic_links = []
+    if 'pics' in mblog:
+        tar_len = len(mblog['pics'])
+        print(f"uploading {tar_len} pictures to Cloudiary")
+        pic_links = extract_and_upload_pics(mblog['pics'])
+
+        if len(mblog['pics']) != len(pic_links):
+            print(f"Tried {tar_len}, {len(pic_links)} succeeded")
+        else:
+            print('done')
+
+    return pic_links

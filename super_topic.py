@@ -9,7 +9,7 @@ from io_utils import (
     make_weibo_request,
     update_db,
     spider_full_content,
-    upload_weibo_pics
+    upload_pics_for_given_weibo
 )
 
 # 每次请求中最小的since_id，下次请求使用，新浪分页机制
@@ -99,16 +99,7 @@ def spider_topic(post_collection, latest_uid, history_max_id):
         # sys.stdout.flush()
 
         # upload pic to cloudinary
-        pic_links = []
-        if 'pics' in mblog:
-            tar_len = len(mblog['pics'])
-            print(f"uploading {tar_len} pictures to Cloudiary")
-            pic_links = upload_weibo_pics(mblog['pics'])
-
-            if len(mblog['pics']) != len(pic_links):
-                print(f"Tried {tar_len}, {len(pic_links)} succeeded")
-            else:
-                print('done')
+        pic_links = upload_pics_for_given_weibo(mblog)
 
         # 3 Update DB
         update_db(post_collection, mblog, content_text, pic_links)
@@ -133,7 +124,8 @@ def patch_super_topic(
         use_static_end: whether use preset ending id, default no
     """
 
-    if use_static_end:
+    # need to check empty for new collections
+    if use_static_end or db.count() == 0:
         history_max_id = temp_history_max_id
     else:
         history_max_id = list(db.find().sort('wb-id',-1).limit(1))[0]['wb-id']
